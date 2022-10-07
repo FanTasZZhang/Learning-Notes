@@ -8,12 +8,12 @@
 
 ### 回归还是分类（regression or classification）
 
-1. Regression: predict continuous values
-   1. What is the value of house in California?
-   2. What is the probability that a user will click on this ad?
-2. Classification
-   1. Is a given email span or not?
-   2. Is this an image of dog, cat, or hamster?
+1. Regression: predict continuous values 回归
+   1. What is the value of house in California?加州房价
+   2. What is the probability that a user will click on this ad? 点击概率
+2. Classification 分类
+   1. Is a given email span or not? 是不是垃圾邮件
+   2. Is this an image of dog, cat, or hamster? 图片究竟是啥
 
 ## 机器学习关键点
 
@@ -313,6 +313,18 @@
     - So, 最小化logistic loss正是在sigmoid函数上做MLE
   - SGD
     - $\begin{split} w &\leftarrow w - \eta \tilde{\nabla}_wl_{logistic}(y_nw^Tx_n) \\ &= w - \eta(\frac{-e^{-z}}{1+e^{-z}}|_{z=y_nw^Tx_n})y_nx_n \\ &= w + \eta \sigma(-y_nw^Tx_n)y_nx_n \\ &= w + \eta \mathbb{P}(-y_n | x_n;w)y_nx_n\end{split}$
+- 交叉熵函数推导
+  - 首先我们知道逻辑回归最后计算出来的是概率
+  - $P(y=1|x;w) = f_w(x), P(y=0|x;w) = 1-f_w(x)$
+  - 综合起来：
+  - $P(y|x;w) = (f_w(x))^y(1-f_w(x))^{1-y}$
+  - 使用MLE:
+  - $L(w) = \prod_{i=1}^mP(y|x;w)$
+  - 因为连乘不好求导书，两侧取log，并乘以系数$-\frac{1}{m}$把求最大值问题转换成球最小值问题
+  - $J(w) = -\frac{1}{m}log L(w) = \frac{1}{m}\sum_{i=1}^m(y^ilogf_w(x^i) + (1-y^i)log(1-f_w(x^i)))$
+  - 求偏导：
+  - $\frac{\partial}{\partial w_j}J(w) = \frac{1}{m}\sum_{i=1}^m(f_w(x^i)-y^i)x_j^i$
+  
 
 ### Newton method
 
@@ -662,6 +674,20 @@
   - 常用算法：
     - naive bayes, KNN, GMM，HMM，贝叶斯网络，Sigmoid belief network，马尔可夫随机场，LDA文档生成模型
 
+### 先验概率与后验概率
+
+#### 先验概率：对于某一件事情发生可能性的客观评估
+
+- 以全事件为背景的概率，一般根据统计得出
+  - 根据统计获得，玩英雄联盟的人数和不玩英雄联盟的人数$P(lol) = 0.3$百分之三十的人玩英雄联盟
+
+#### 后验概率：对事件发生是由某一个原因导致的概率
+
+- 根据某些给定的事情，事件发生的概率
+  - 告诉玩英雄联盟中男生概率$P(male|lol)=0.8$玩英雄联盟中女生概率$P(female|lol)=0.2$，不玩英雄联盟人里男生的概率$P(male|!lol) = 0.5$
+  - 问：给你一个男生，他玩英雄联盟的概率是多少
+  - 答：$P(lol | male) = \frac{P(male | lol) P(lol)}{P(male|lol)P(lol) + P(male|!lol)P(!lol)} = \frac{0.8 * 0.3}{0.8*0.3 + 0.5*0.7} = \frac{0.24}{0.59}=0.407$
+
 ## 机器学习中关于准确率的测量：
 
 - TP：实际为positive，测试结果为positive
@@ -714,7 +740,7 @@
    $$
 
    $$
-   FPR (false\ positive\ rate)=  \frac{TP}{FP+TN}
+   FPR (false\ positive\ rate)=  \frac{FP}{FP+TN}
    $$
 
    1. ROC curve: TPR vs. FPR
@@ -723,6 +749,39 @@
       1. Range from 0 to 1: 100% wrong -> AUC = 0; 100% correct -> AUC = 1
       2. AUC is classification threshold invariant: measure the quality of the model irrespective of what threshold is chosen
          1. In spam detection we won’t use this: you likely want to prioritize minimizing false positives (results in a increase of false negatives)
+   3. 用肿瘤例子来理解ROC
+      1. FPR也就是False positive rate,在所有的恶性肿瘤中，被预测为良性的概率。随机拿一个恶性肿瘤的样本，被预测称良性的概率是多少。我们当然希望它越小越好
+      2. TPR也就是true positive rate，在所有良性肿瘤中，被预测为良性的概率。随机拿一个良性肿瘤的样本，被预测为良性的概率是多少，我们当然希望它越大越好
+      3. 接下来让TPR做纵轴，FPR做横轴，我们先考察几个点
+         1. （0，1）左上角，也就是FPR=0，TPR=1。可以说完美，所有的良性我们都预测为良性，所有的恶性都预测为恶性
+         2. （1，0）右下角，也就是FPR=1，TPR=0。最糟糕的情况，和上面相反
+         3. （0，0）左下角，都是0，也就是说无论给我们的样本是良性还是恶性，我们都预测为恶性
+         4. （1，1）右上角，都是1，也就是说无论给我们是良性还是恶性，都预测为良性
+      4. 所以（0，0）和（1，1）最好实现，只要让我们的分类器无脑输出良性或者恶性就可以，而如果一个点越靠近左上角越好
+      5. 现在给我们一个分类器，应该输出是一个点，但为什么是一条线？
+         1. 在二分类中我们有一个阈值threshold，我们输出一个概率，一般来说阈值为0.5，也就是说大于0.5为正，小于0.5为负，但是这个阈值是可以调整的。我们把阈值从0慢慢调整到1，每个阈值都对应一个混淆矩阵，那么就会有不一样的FPR和TPR，这样就可以画一条曲线出来
+         2. 阈值的范围是[0,1]，当从1到0的移动过程中，FPR会越来越大，因为我们越来越容易把一个恶性的肿瘤判断成良性的（因为判断的标准越来越低）
+         3. 假设我们随机预测，0.5良性0.5恶性，那么就是y=x
+         4. 曲线一定是从左下角到右上角，分别对应阈值为1，也就是说无论什么，都预测恶性，再就是阈值为0，无论什么东西，我们都预测为良性。
+         5. 曲线不是光滑的，因为只有当样本出现偏移，FPR，TPR出现变化的时候，我们才会记录
+      6. 一般来说AUROC很高，意味着错误样本和正确样本的分布没有重合，给我们一个例子，我们都能正确的判断出来它的属性。而AUROC很低意味着重合度很高，我们基本没有办法分辨出来给的例子是良性还是恶性，基本就是随机猜测，也就是AUROC=0.5
+      7. 所以AUC表示，随机抽取一个良性肿瘤和一个恶性肿瘤，分类器给出良性的分数大于给出恶性的分数的概率
+
+6. PRC, precision-recall curve，
+
+   1. Precision作为横坐标，而recall作为纵坐标，（也可以反过来）而PRC曲线是越偏向于右上角越好（Precision和Recall都很高）
+   2. 和ROC一样，根据不同的阈值来计算precision和recall的值
+      1. （0，0）左下角，precision和recall都是0，所有预测为良性的肿瘤，没有一个做出了正确的判断，并且所有真正良性的肿瘤，我们没发现一个。（这也太糟糕了）
+      2. （1，1）右上角，precision和recall都是1，所有预测为良性的肿瘤，都是良性，所有真正良性的肿瘤，我们都发现了（最好的情况）
+      3. （0，1）左上角，precision=0，recall=1，所有预测良性的肿瘤，没有一个做出正确的判断。所有真正良性的肿瘤，我们呢都发现了。（很显然这个情况不可能）
+      4. （1，0）右下角，precision=1，recall=0，所有预测良性的肿瘤，都是正确的判断。所有真正良性的肿瘤，我们一个都没发现。（也很显然这种情况并不可能）
+      5. 阈值为1，也就是说我们几乎没有办法把给的样本预测为良性。那么precision的定义首先就不存在，因为没有预测为良性的样本，分母=0。并且，给我们一个样本，我们的预测结果就一定是恶性的，就意味着所有真正良性的肿瘤，我们一个都没发现。
+      6. 阈值为0，也就是说给我们一个样本，我们就预测为良性，那么precision的值就相当于全局中良性所占的比例。而因为所有的我们都预测为良性，那么此时的recall就等于1。
+
+   3. PR曲线在正负样例1:1的情况下是ok的1
+      1. 很简单，假设我们增加负样本的个数，也就是说FP的个数理论增长，那么precision就会下降。同时recall关注的东西只有正样本，所以recall的值不会有更改。这就导致表现不是很好。
+      2. 在个人项目中的那个例子，为什么AUPRC分数很低，原因就是负样本太太太多了对比正样本而言。而我们关注的点应该是Recall，也就是说所有真的会死的患者，有多少被我们发现了。相较而言我们并不是很关心所有预测会死的人，有多少真的死了。就像预测地震情况，只要地震我们都想预测到。但是我们并不害怕说预测了1000次要地震，只有10次地震了。
+
 
 ## 机器学习中如何处理过拟合问题
 
@@ -861,29 +920,3 @@ $$
    1. 使用动量方法，计算包含过去
    2. 使用RMSProp算法，计算衰减学习率
    3. 然后更新参数深度学习优化：
-
-# 过去的问题
-
-1. 什么是resnet与扩充知识：
-
-   1. [你必须要知道CNN模型：ResNet](https://zhuanlan.zhihu.com/p/31852747)
-   2. [一文读懂VGG网络](https://zhuanlan.zhihu.com/p/41423739)
-   3. [深度学习卷积神经网络-AlexNet](https://zhuanlan.zhihu.com/p/42914388)
-
-2. 什么是BatchNorm层
-
-   1. [什么是批标准化 (Batch Normalization)](https://zhuanlan.zhihu.com/p/24810318
-      )
-   2. 如果我们决定放入BN层，我们放在哪里，所有层都需要还是
-      1. 答案：比如CNN中我们放在Convolution layer与activation function层中间所有层都需要
-
-   ```python
-   h = conv2d(x, h_out, 1, stride=stride, scope="conv_1")
-   h = batch_norm(h, is_training=is_training, scope="bn_1")
-   h = tf.nn.relu(h)
-   h = conv2d(h, h_out, 3, stride=1, scope="conv_2")
-   h = batch_norm(h, is_training=is_training, scope="bn_2")
-   h = tf.nn.relu(h)
-   h = conv2d(h, n_out, 1, stride=1, scope="conv_3")
-   h = batch_norm(h, is_training=is_training, scope="bn_3")
-   ```
